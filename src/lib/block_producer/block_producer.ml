@@ -906,11 +906,10 @@ let generate_genesis_proof_if_needed ~genesis_breadcrumb ~frontier_reader () =
 let iteration ~schedule_next_vrf_check ~produce_block_now
     ~schedule_block_production ~next_vrf_check_now
     ~context:(module Context : CONTEXT) ~vrf_evaluator ~time_controller
-    ~coinbase_receiver ~set_next_producer_timing ~transition_frontier
-    ~vrf_evaluation_state ~epoch_data_for_vrf ~ledger_snapshot i slot =
+    ~coinbase_receiver ~set_next_producer_timing ~frontier ~vrf_evaluation_state
+    ~epoch_data_for_vrf ~ledger_snapshot i slot =
   let consensus_state =
-    Transition_frontier.(
-      best_tip transition_frontier |> Breadcrumb.consensus_state)
+    Transition_frontier.(best_tip frontier |> Breadcrumb.consensus_state)
   in
   let i' =
     Mina_numbers.Length.succ
@@ -1095,9 +1094,9 @@ let run ~context:(module Context : CONTEXT) ~vrf_evaluator ~prover ~verifier
                 ~f:(Fn.compose Deferred.return Option.is_some)
             in
             (slot, i)
-        | Some transition_frontier ->
+        | Some frontier ->
             let consensus_state =
-              Transition_frontier.best_tip transition_frontier
+              Transition_frontier.best_tip frontier
               |> Breadcrumb.consensus_state
             in
             let now = Block_time.now time_controller in
@@ -1160,7 +1159,7 @@ let run ~context:(module Context : CONTEXT) ~vrf_evaluator ~prover ~verifier
                 ~zkapp_cmd_limit_hardcap
             in
             let produce_block_now data =
-              produce_do transition_frontier data >>| const (new_global_slot, i')
+              produce_do frontier data >>| const (new_global_slot, i')
             in
             let schedule_next_vrf_check time =
               let%map () = schedule ~logger ~time_controller time in
@@ -1181,8 +1180,8 @@ let run ~context:(module Context : CONTEXT) ~vrf_evaluator ~prover ~verifier
               ~schedule_block_production ~next_vrf_check_now
               ~context:(module Context)
               ~vrf_evaluator ~time_controller ~coinbase_receiver
-              ~set_next_producer_timing ~transition_frontier
-              ~vrf_evaluation_state ~epoch_data_for_vrf ~ledger_snapshot i slot
+              ~set_next_producer_timing ~frontier ~vrf_evaluation_state
+              ~epoch_data_for_vrf ~ledger_snapshot i slot
       in
       let start _ =
         Deferred.forever
