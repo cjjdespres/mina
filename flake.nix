@@ -350,8 +350,7 @@
         devShells.with-lsp = ocamlPackages.mina-dev.overrideAttrs (oa: {
           name = "mina-with-lsp";
           buildInputs = oa.buildInputs ++ devShellPackages;
-          nativeBuildInputs = oa.nativeBuildInputs
-            ++ [ ocamlPackages.ocaml-lsp-server ];
+          nativeBuildInputs = [ pkgs.ocamlPackages.ocamlformat ocamlPackages.ocaml-lsp-server ] ++ oa.nativeBuildInputs;
           shellHook = ''
             ${oa.shellHook}
             unset MINA_COMMIT_DATE MINA_COMMIT_SHA1 MINA_BRANCH
