@@ -995,14 +995,29 @@ let check_zkapp_transaction t (zkapp_command : Zkapp_command.Stable.Latest.t) :
         in
         Deferred.Result.fail error
   in
-  let%bind best_tip_ledger =
-    match best_ledger_opt t with
-    | None ->
-        Deferred.Or_error.error_string "No best tip!"
-    | Some l ->
-        Deferred.Result.return l
-  in
-  (* TODO: make aware of vk cache! *)
+  (* let%bind best_tip_ledger = *)
+  (*   match best_ledger_opt t with *)
+  (*   | None -> *)
+  (*       Deferred.Or_error.error_string "No best tip!" *)
+  (*   | Some l -> *)
+  (*       Deferred.Result.return l *)
+  (* in *)
+  (* (\* TODO: make aware of vk cache! *\) *)
+  (* let%bind verifiable_command = *)
+  (*   O1trace.sync_thread "convert_command_to_verifiable" (fun () -> *)
+  (*       Zkapp_command zkapp_command *)
+  (*       |> User_command.write_all_proofs_to_disk *)
+  (*            ~signature_kind:Mina_signature_kind.t_DEPRECATED *)
+  (*            ~proof_cache_db:t.proof_cache_db *)
+  (*       |> User_command.to_verifiable *)
+  (*            ~find_vk: *)
+  (*              (Zkapp_command.Verifiable.load_vk_from_ledger *)
+  (*                 ~get:(Mina_ledger.Ledger.get best_tip_ledger) *)
+  (*                 ~location_of_account: *)
+  (*                   (Mina_ledger.Ledger.location_of_account best_tip_ledger) ) *)
+  (*            ~failed:false *)
+  (*       |> Deferred.return ) *)
+  (* in *)
   let%bind verifiable_command =
     O1trace.sync_thread "convert_command_to_verifiable" (fun () ->
         Zkapp_command zkapp_command
@@ -1010,14 +1025,12 @@ let check_zkapp_transaction t (zkapp_command : Zkapp_command.Stable.Latest.t) :
              ~signature_kind:Mina_signature_kind.t_DEPRECATED
              ~proof_cache_db:t.proof_cache_db
         |> User_command.to_verifiable
-             ~find_vk:
-               (Zkapp_command.Verifiable.load_vk_from_ledger
-                  ~get:(Mina_ledger.Ledger.get best_tip_ledger)
-                  ~location_of_account:
-                    (Mina_ledger.Ledger.location_of_account best_tip_ledger) )
+             ~find_vk:(fun _ _ -> Or_error.error_string"nope")
+
              ~failed:false
         |> Deferred.return )
   in
+
   let command_with_status =
     { With_status.data = verifiable_command; status = Applied }
   in

@@ -1033,6 +1033,7 @@ module Mutations = struct
     ; send_test_payments
     ; send_delegation
     ; send_zkapp
+    ; check_zkapp
     ; mock_zkapp
     ; internal_send_zkapp
     ; export_logs
