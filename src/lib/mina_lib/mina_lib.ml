@@ -976,6 +976,78 @@ let add_full_transactions t user_commands =
       in
       Deferred.Result.fail error
 
+let check_zkapp_transaction t (zkapp_command : Zkapp_command.Stable.Latest.t) :
+    unit Deferred.Or_error.t =
+  let open Deferred.Or_error.Let_syntax in
+  let%bind () =
+    match
+      User_command.check_well_formedness
+        ~genesis_constants:t.config.precomputed_values.genesis_constants
+        (Zkapp_command zkapp_command)
+    with
+    | Ok () ->
+        return ()
+    | Error errs ->
+        let error =
+          Error.of_string
+            ( List.map errs ~f:User_command.Well_formedness_error.to_string
+            |> String.concat ~sep:"," )
+        in
+        Deferred.Result.fail error
+  in
+  let%bind best_tip_ledger =
+    match best_ledger_opt t with
+    | None ->
+        Deferred.Or_error.error_string "No best tip!"
+    | Some l ->
+        Deferred.Result.return l
+  in
+  (* TODO: make aware of vk cache! *)
+  let%bind verifiable_command =
+    O1trace.sync_thread "convert_command_to_verifiable" (fun () ->
+        Zkapp_command zkapp_command
+        |> User_command.write_all_proofs_to_disk
+             ~signature_kind:Mina_signature_kind.t_DEPRECATED
+             ~proof_cache_db:t.proof_cache_db
+        |> User_command.to_verifiable
+             ~find_vk:
+               (Zkapp_command.Verifiable.load_vk_from_ledger
+                  ~get:(Mina_ledger.Ledger.get best_tip_ledger)
+                  ~location_of_account:
+                    (Mina_ledger.Ledger.location_of_account best_tip_ledger) )
+             ~failed:false
+        |> Deferred.return )
+  in
+  let command_with_status =
+    { With_status.data = verifiable_command; status = Applied }
+  in
+  let%bind results =
+    Verifier.verify_commands t.processes.verifier [ command_with_status ]
+  in
+  let convert_verifier_result = function
+    | `Invalid_keys _
+    | `Invalid_signature _
+    | `Invalid_proof _
+    | `Missing_verification_key _
+    | `Unexpected_verification_key _
+    | `Mismatched_authorization_kind _ ->
+        Deferred.Or_error.error_string "Error!"
+    | `Valid_assuming _assumptions ->
+        Deferred.Or_error.error_string "Assumptions!"
+    | `Valid command ->
+        Deferred.Or_error.return command
+  in
+  let%bind _result =
+    match results with
+    | [] ->
+        failwith "Somehow got no verification results!"
+    | [ result ] ->
+        result |> convert_verifier_result
+    | _ ->
+        failwith "Somehow got more than one verification result!"
+  in
+  return ()
+
 let add_zkapp_transactions t
     (zkapp_commands : Zkapp_command.Stable.Latest.t list) =
   let add_all_txns () =

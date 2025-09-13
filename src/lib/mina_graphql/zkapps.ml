@@ -25,3 +25,8 @@ let send_zkapp_command mina zkapp_command =
       )
   | `Bootstrapping ->
       return (Error "Daemon is bootstrapping")
+
+let check_zkapp_command mina zkapp_command =
+  match%map Mina_lib.check_zkapp_transaction mina zkapp_command with
+  | Ok () -> Ok "Command checked successfully!"
+  | Error e -> Error (sprintf "Check failed: %s" (Error.to_string_hum e))

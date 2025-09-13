@@ -661,6 +661,12 @@ module Mutations = struct
     make_zkapp_endpoint ~name:"sendZkapp" ~doc:"Send a zkApp transaction"
       ~f:Zkapps.send_zkapp_command
 
+  let check_zkapp =
+    io_field "checkZkapp" ~doc:"Check a zkApp transaction"
+      ~args: Arg.[arg "input" ~typ:(non_null Types.Input.SendZkappInput.arg_typ)]
+      ~typ:(non_null string)
+      ~resolve:(fun { ctx = mina; _ } () zkapp_command -> Zkapps.check_zkapp_command mina zkapp_command)
+
   let mock_zkapp =
     make_zkapp_endpoint ~name:"mockZkapp"
       ~doc:"Mock a zkApp transaction, no effect on blockchain"
