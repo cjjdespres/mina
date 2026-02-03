@@ -2,6 +2,19 @@ open Core_kernel
 open Async_kernel
 open Pipe_lib
 
+type Structured_log_events.t +=
+  | Archive_block_dispatched of
+      { state_hash : Mina_base.State_hash.t; time : float }
+  [@@deriving
+    register_event
+      { msg = "Dispatched archive data for $state_hash, took $time ms" }]
+
+type Structured_log_events.t +=
+  | Archive_dispatch_failed of
+      { state_hash : Mina_base.State_hash.t; error : Yojson.Safe.t }
+  [@@deriving
+    register_event { msg = "Could not send breadcrumb to archive: $error" }]
+
 let dispatch ?(max_tries = 5) ~logger
     (archive_location : Host_and_port.t Cli_lib.Flag.Types.with_name) diff =
   let rec go tries_left errs =
@@ -114,24 +127,18 @@ let run ~logger ~precomputed_values
                 dispatch archive_location ~logger (Transition_frontier diff)
               with
               | Ok () ->
-                  [%log debug]
-                    "Dispatched archive data for $state_hash, took $time ms"
-                    ~metadata:
-                      [ ( "state_hash"
-                        , Mina_base.State_hash.to_yojson
-                            (Transition_frontier.Breadcrumb.state_hash
-                               breadcrumb ) )
-                      ; ( "time"
-                        , `Float
-                            (Time.Span.to_ms
-                               (Time.diff (Time.now ()) diff_time) ) )
-                      ] ;
+                  let state_hash =
+                    Transition_frontier.Breadcrumb.state_hash breadcrumb
+                  in
+                  let time =
+                    Time.Span.to_ms (Time.diff (Time.now ()) diff_time)
+                  in
+                  [%str_log debug]
+                    (Archive_block_dispatched { state_hash; time }) ;
                   ()
               | Error e ->
-                  [%log warn]
-                    ~metadata:
-                      [ ("error", Error_json.error_to_yojson e)
-                      ; ( "breadcrumb"
-                        , Transition_frontier.Breadcrumb.to_yojson breadcrumb )
-                      ]
-                    "Could not send breadcrumb to archive: $error" ) ) )
+                  let state_hash =
+                    Transition_frontier.Breadcrumb.state_hash breadcrumb
+                  in
+                  let error = Error_json.error_to_yojson e in
+                  [%str_log warn] (Archive_dispatch_failed { state_hash; error }) ) ) )
