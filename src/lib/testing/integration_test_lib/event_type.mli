@@ -152,6 +152,18 @@ module Snark_work_failed : sig
   include Event_type_intf with type t := t
 end
 
+module Archive_block_dispatched : sig
+  type t = { state_hash : Mina_base.State_hash.t; time : float }
+
+  include Event_type_intf with type t := t
+end
+
+module Archive_dispatch_failed : sig
+  type t = { state_hash : Mina_base.State_hash.t; error : Yojson.Safe.t }
+
+  include Event_type_intf with type t := t
+end
+
 type 'a t =
   | Log_error : Log_error.t t
   | Node_initialization : Node_initialization.t t
@@ -170,6 +182,8 @@ type 'a t =
   | Persisted_frontier_fresh_boot : Persisted_frontier_fresh_boot.t t
   | Persisted_frontier_dropped : Persisted_frontier_dropped.t t
   | Bootstrap_required : Bootstrap_required.t t
+  | Archive_block_dispatched : Archive_block_dispatched.t t
+  | Archive_dispatch_failed : Archive_dispatch_failed.t t
 
 val to_string : 'a t -> string
 

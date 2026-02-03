@@ -422,6 +422,43 @@ module Snark_work_failed = struct
   let parse = From_daemon_log (id, parse_func)
 end
 
+module Archive_block_dispatched = struct
+  type t = { state_hash : State_hash.t; time : float } [@@deriving yojson]
+
+  let name = "Archive_block_dispatched"
+
+  let id = Mina_lib.Archive_client.archive_block_dispatched_structured_events_id
+
+  let parse_func message =
+    let open Or_error.Let_syntax in
+    match%bind parse id message with
+    | Mina_lib.Archive_client.Archive_block_dispatched { state_hash; time } ->
+        Ok { state_hash; time }
+    | _ ->
+        bad_parse
+
+  let parse = From_daemon_log (id, parse_func)
+end
+
+module Archive_dispatch_failed = struct
+  type t = { state_hash : State_hash.t; error : Yojson.Safe.t }
+  [@@deriving yojson]
+
+  let name = "Archive_dispatch_failed"
+
+  let id = Mina_lib.Archive_client.archive_dispatch_failed_structured_events_id
+
+  let parse_func message =
+    let open Or_error.Let_syntax in
+    match%bind parse id message with
+    | Mina_lib.Archive_client.Archive_dispatch_failed { state_hash; error } ->
+        Ok { state_hash; error }
+    | _ ->
+        bad_parse
+
+  let parse = From_daemon_log (id, parse_func)
+end
+
 type 'a t =
   | Log_error : Log_error.t t
   | Node_initialization : Node_initialization.t t
@@ -440,6 +477,8 @@ type 'a t =
   | Persisted_frontier_fresh_boot : Persisted_frontier_fresh_boot.t t
   | Persisted_frontier_dropped : Persisted_frontier_dropped.t t
   | Bootstrap_required : Bootstrap_required.t t
+  | Archive_block_dispatched : Archive_block_dispatched.t t
+  | Archive_dispatch_failed : Archive_dispatch_failed.t t
 
 type existential = Event_type : 'a t -> existential
 
@@ -474,6 +513,10 @@ let existential_to_string = function
       "Persisted_frontier_dropped"
   | Event_type Bootstrap_required ->
       "Bootstrap_requied"
+  | Event_type Archive_block_dispatched ->
+      "Archive_block_dispatched"
+  | Event_type Archive_dispatch_failed ->
+      "Archive_dispatch_failed"
 
 let to_string e = existential_to_string (Event_type e)
 
@@ -508,6 +551,10 @@ let existential_of_string_exn = function
       Event_type Persisted_frontier_dropped
   | "Bootstrap_requied" ->
       Event_type Bootstrap_required
+  | "Archive_block_dispatched" ->
+      Event_type Archive_block_dispatched
+  | "Archive_dispatch_failed" ->
+      Event_type Archive_dispatch_failed
   | _ ->
       failwith "invalid event type string"
 
@@ -554,6 +601,8 @@ let all_event_types =
   ; Event_type Persisted_frontier_fresh_boot
   ; Event_type Persisted_frontier_dropped
   ; Event_type Bootstrap_required
+  ; Event_type Archive_block_dispatched
+  ; Event_type Archive_dispatch_failed
   ]
 
 let event_type_module : type a. a t -> (module Event_type_intf with type t = a)
@@ -588,6 +637,10 @@ let event_type_module : type a. a t -> (module Event_type_intf with type t = a)
       (module Persisted_frontier_dropped)
   | Bootstrap_required ->
       (module Bootstrap_required)
+  | Archive_block_dispatched ->
+      (module Archive_block_dispatched)
+  | Archive_dispatch_failed ->
+      (module Archive_dispatch_failed)
 
 let event_to_yojson event =
   let (Event (t, d)) = event in
@@ -718,6 +771,10 @@ let dispatch_exn : type a b c. a t -> a -> b t -> (b -> c) -> c =
   | Persisted_frontier_dropped, Persisted_frontier_dropped ->
       h e
   | Bootstrap_required, Bootstrap_required ->
+      h e
+  | Archive_block_dispatched, Archive_block_dispatched ->
+      h e
+  | Archive_dispatch_failed, Archive_dispatch_failed ->
       h e
   | _ ->
       failwithf "Mismatched event types: %s, %s" (to_string t1) (to_string t2)
