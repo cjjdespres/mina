@@ -23,6 +23,23 @@ module Dockerfile = struct
       let create ~published ~target = { published; target }
     end
 
+    module Deploy = struct
+      module Resources = struct
+        module Limits = struct
+          type t = { cpus : string; memory : string } [@@deriving to_yojson]
+        end
+
+        type t = { limits : Limits.t } [@@deriving to_yojson]
+      end
+
+      type t = { resources : Resources.t } [@@deriving to_yojson]
+
+      let create ~cpus ~memory =
+        { resources = { limits = { Resources.Limits.cpus; memory } } }
+
+      let default = create ~cpus:"2" ~memory:"6G"
+    end
+
     type t =
       { image : string
       ; command : string list
@@ -37,19 +54,21 @@ module Dockerfile = struct
       ; ports : Port.t list
       ; environment : Environment.t
       ; volumes : Volume.t list
+      ; deploy : Deploy.t
       }
     [@@deriving to_yojson]
 
-    let create ~image ~command ~entrypoint ~ports ~environment ~volumes =
-      { image; command; entrypoint; ports; environment; volumes }
+    let create ~image ~command ~entrypoint ~ports ~environment ~volumes ~deploy =
+      { image; command; entrypoint; ports; environment; volumes; deploy }
 
-    let to_yojson { image; command; entrypoint; ports; environment; volumes } =
+    let to_yojson { image; command; entrypoint; ports; environment; volumes; deploy } =
       `Assoc
         ( [ ("image", `String image)
           ; ("command", `List (List.map ~f:(fun s -> `String s) command))
           ; ("ports", `List (List.map ~f:Port.to_yojson ports))
           ; ("environment", Environment.to_yojson environment)
           ; ("volumes", `List (List.map ~f:Volume.to_yojson volumes))
+          ; ("deploy", Deploy.to_yojson deploy)
           ]
         @
         match entrypoint with

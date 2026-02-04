@@ -47,7 +47,10 @@ module Network_config = struct
   let expand ~logger ~test_name ~(cli_inputs : Cli_inputs.t) ~(debug : bool)
       ~(images : Test_config.Container_images.t) ~(test_config : Test_config.t)
       ~(constants : Test_config.constants) =
-    let _ = cli_inputs in
+    let deploy =
+      Docker_compose.Dockerfile.Service.Deploy.create
+        ~cpus:cli_inputs.cpu_limit ~memory:cli_inputs.memory_limit
+    in
     let ({ block_producers
          ; snark_coordinator
          ; snark_worker_fee
@@ -115,7 +118,7 @@ module Network_config = struct
               ~start_filtered_logs
         }
       in
-      Seed_config.create
+      Seed_config.create ~deploy
         ~service_name:(sprintf "seed-%s" (generate_random_id ()))
         ~image:images.mina
         ~ports:(PortManager.allocate_ports_for_node port_manager)
@@ -144,7 +147,7 @@ module Network_config = struct
               ~target:PortManager.postgres_internal_port
           in
           let postgres_config =
-            Postgres_config.create ~service_name:config.host
+            Postgres_config.create ~deploy ~service_name:config.host
               ~image:Postgres_config.postgres_image ~ports:[ postgres_port ]
               ~volumes:
                 [ Postgres_config.postgres_create_schema_volume
@@ -172,7 +175,7 @@ module Network_config = struct
               ~published:(PortManager.allocate_port port_manager)
               ~target:PortManager.mina_internal_rest_port
           in
-          Archive_node_config.create
+          Archive_node_config.create ~deploy
             ~service_name:
               (sprintf "archive-%d-%s" (index + 1) (generate_random_id ()))
             ~image:images.archive_node
@@ -198,7 +201,7 @@ module Network_config = struct
                   ~start_filtered_logs
             }
           in
-          Seed_config.create
+          Seed_config.create ~deploy
             ~service_name:
               (sprintf "seed-%d-%s" (index + 1) (generate_random_id ()))
             ~image:images.mina
@@ -244,7 +247,7 @@ module Network_config = struct
                   ~start_filtered_logs
             }
           in
-          Block_producer_config.create ~service_name:node.node_name
+          Block_producer_config.create ~deploy ~service_name:node.node_name
             ~image:images.mina
             ~ports:(PortManager.allocate_ports_for_node port_manager)
             ~volumes ~config:block_producer_config )
@@ -297,7 +300,7 @@ module Network_config = struct
           in
           let worker_nodes =
             List.init snark_coordinator_node.worker_nodes ~f:(fun index ->
-                Docker_node_config.Snark_worker_config.create
+                Docker_node_config.Snark_worker_config.create ~deploy
                   ~service_name:
                     (sprintf "snark-worker-%d-%s" (index + 1)
                        (generate_random_id ()) )
@@ -320,7 +323,7 @@ module Network_config = struct
             }
           in
           Some
-            (Snark_coordinator_config.create
+            (Snark_coordinator_config.create ~deploy
                ~service_name:snark_node_service_name ~image:images.mina
                ~ports:coordinator_ports ~volumes:docker_volumes
                ~config:snark_coordinator_config )

@@ -233,7 +233,7 @@ module Block_producer_config = struct
     in
     List.concat [ block_producer_args; base_args ]
 
-  let create_docker_config ~image ~entrypoint ~ports ~volumes ~environment
+  let create_docker_config ~deploy ~image ~entrypoint ~ports ~volumes ~environment
       ~config =
     { Dockerfile.Service.image
     ; command = create_cmd config
@@ -241,13 +241,14 @@ module Block_producer_config = struct
     ; ports
     ; environment
     ; volumes
+    ; deploy
     }
 
-  let create ~service_name ~image ~ports ~volumes ~config =
+  let create ~deploy ~service_name ~image ~ports ~volumes ~config =
     let entrypoint = Some [ "/root/entrypoint.sh" ] in
     let environment = Base_node_config.to_docker_env_vars config.base_config in
     let docker_config =
-      create_docker_config ~image ~ports ~volumes ~environment ~entrypoint
+      create_docker_config ~deploy ~image ~ports ~volumes ~environment ~entrypoint
         ~config
     in
     { service_name; config; docker_config }
@@ -290,7 +291,7 @@ module Seed_config = struct
     in
     List.concat [ seed_args; base_args ]
 
-  let create_docker_config ~image ~entrypoint ~ports ~volumes ~environment
+  let create_docker_config ~deploy ~image ~entrypoint ~ports ~volumes ~environment
       ~config =
     { Dockerfile.Service.image
     ; command = create_cmd config
@@ -298,13 +299,14 @@ module Seed_config = struct
     ; ports
     ; environment
     ; volumes
+    ; deploy
     }
 
-  let create ~service_name ~image ~ports ~volumes ~config =
+  let create ~deploy ~service_name ~image ~ports ~volumes ~config =
     let entrypoint = Some [ "/root/entrypoint.sh" ] in
     let environment = Base_node_config.to_docker_env_vars config.base_config in
     let docker_config =
-      create_docker_config ~image ~ports ~volumes ~environment ~entrypoint
+      create_docker_config ~deploy ~image ~ports ~volumes ~environment ~entrypoint
         ~config
     in
     { service_name; config; docker_config }
@@ -337,7 +339,7 @@ module Snark_worker_config = struct
     ; "false"
     ]
 
-  let create_docker_config ~image ~entrypoint ~ports ~volumes ~environment
+  let create_docker_config ~deploy ~image ~entrypoint ~ports ~volumes ~environment
       ~config =
     { Dockerfile.Service.image
     ; command = create_cmd config
@@ -345,13 +347,14 @@ module Snark_worker_config = struct
     ; ports
     ; environment
     ; volumes
+    ; deploy
     }
 
-  let create ~service_name ~image ~ports ~volumes ~config =
+  let create ~deploy ~service_name ~image ~ports ~volumes ~config =
     let entrypoint = Some [ "/root/entrypoint.sh" ] in
     let environment = Base_node_config.to_docker_env_vars config.base_config in
     let docker_config =
-      create_docker_config ~image ~ports ~volumes ~environment ~entrypoint
+      create_docker_config ~deploy ~image ~ports ~volumes ~environment ~entrypoint
         ~config
     in
     { service_name; config; docker_config }
@@ -396,7 +399,7 @@ module Snark_coordinator_config = struct
     in
     List.concat [ snark_coordinator_args; base_args ]
 
-  let create_docker_config ~image ~entrypoint ~ports ~volumes ~environment
+  let create_docker_config ~deploy ~image ~entrypoint ~ports ~volumes ~environment
       ~config =
     { Dockerfile.Service.image
     ; command = create_cmd config
@@ -404,9 +407,10 @@ module Snark_coordinator_config = struct
     ; ports
     ; environment
     ; volumes
+    ; deploy
     }
 
-  let create ~service_name ~image ~ports ~volumes ~config =
+  let create ~deploy ~service_name ~image ~ports ~volumes ~config =
     let entrypoint = Some [ "/root/entrypoint.sh" ] in
     let environment =
       snark_coordinator_default_env
@@ -416,7 +420,7 @@ module Snark_coordinator_config = struct
       @ Base_node_config.to_docker_env_vars config.base_config
     in
     let docker_config =
-      create_docker_config ~image ~ports ~volumes ~environment ~entrypoint
+      create_docker_config ~deploy ~image ~ports ~volumes ~environment ~entrypoint
         ~config
     in
     { service_name; config; docker_config }
@@ -484,23 +488,24 @@ psql -U postgres -d archive -f ./create_schema.sql
     create_connection_uri ~host:t.host ~port:t.port ~username:t.username
       ~password:t.password ~database:t.database
 
-  let create_docker_config ~image ~entrypoint ~ports ~volumes ~environment =
+  let create_docker_config ~deploy ~image ~entrypoint ~ports ~volumes ~environment =
     { Dockerfile.Service.image
     ; command = []
     ; entrypoint
     ; ports
     ; environment
     ; volumes
+    ; deploy
     }
 
-  let create ~service_name ~image ~ports ~volumes ~config =
+  let create ~deploy ~service_name ~image ~ports ~volumes ~config =
     let environment =
       postgres_default_envs ~username:config.username ~password:config.password
         ~database:config.database
         ~port:(Int.to_string config.port)
     in
     let docker_config =
-      create_docker_config ~image ~ports ~volumes ~environment ~entrypoint:None
+      create_docker_config ~deploy ~image ~ports ~volumes ~environment ~entrypoint:None
     in
     { service_name; config; docker_config }
 end
@@ -555,7 +560,7 @@ module Archive_node_config = struct
     in
     List.concat [ base_args; runtime_config_path ]
 
-  let create_docker_config ~image ~entrypoint ~ports ~volumes ~environment
+  let create_docker_config ~deploy ~image ~entrypoint ~ports ~volumes ~environment
       ~config =
     { Dockerfile.Service.image
     ; command = create_cmd config
@@ -563,13 +568,14 @@ module Archive_node_config = struct
     ; ports
     ; environment
     ; volumes
+    ; deploy
     }
 
-  let create ~service_name ~image ~ports ~volumes ~config =
+  let create ~deploy ~service_name ~image ~ports ~volumes ~config =
     let entrypoint = Some [ "/root/entrypoint.sh" ] in
     let environment = Base_node_config.to_docker_env_vars config.base_config in
     let docker_config =
-      create_docker_config ~image ~ports ~volumes ~environment ~entrypoint
+      create_docker_config ~deploy ~image ~ports ~volumes ~environment ~entrypoint
         ~config
     in
     { service_name; config; docker_config }
