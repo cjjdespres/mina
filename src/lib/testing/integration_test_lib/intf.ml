@@ -218,6 +218,8 @@ module Dsl = struct
       ; blocks_seen_by_node : State_hash.Set.t String.Map.t
       ; blocks_including_txn :
           State_hash.Set.t Mina_transaction.Transaction_hash.Map.t
+      ; archive_blocks_dispatched : int
+      ; archive_dispatch_failures : int
       }
 
     val listen :

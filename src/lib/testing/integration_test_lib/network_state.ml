@@ -58,6 +58,8 @@ module Make
           [@to_yojson
             map_to_yojson ~f_key_to_string:Transaction_hash.to_base58_check
               ~f_value_to_yojson:(set_to_yojson ~element:State_hash.to_yojson)]
+    ; archive_blocks_dispatched : int
+    ; archive_dispatch_failures : int
     }
   [@@deriving to_yojson]
 
@@ -78,6 +80,8 @@ module Make
     ; num_persisted_frontier_fresh_boot = 0
     ; num_bootstrap_required = 0
     ; num_persisted_frontier_dropped = 0
+    ; archive_blocks_dispatched = 0
+    ; archive_dispatch_failures = 0
     }
 
   let listen ~logger event_router =
@@ -319,6 +323,34 @@ module Make
                 { state with
                   blocks_seen_by_node = blocks_seen_by_node'
                 ; blocks_including_txn = blocks_including_txn'
+                } ) )
+        : _ Event_router.event_subscription ) ;
+    (* handle_archive_block_dispatched *)
+    ignore
+      ( Event_router.on event_router Event_type.Archive_block_dispatched
+          ~f:(fun node _dispatched ->
+            update ~f:(fun state ->
+                [%log debug]
+                  "Updating network state with archive block dispatched from \
+                   $node"
+                  ~metadata:[ ("node", `String (Node.infra_id node)) ] ;
+                { state with
+                  archive_blocks_dispatched =
+                    state.archive_blocks_dispatched + 1
+                } ) )
+        : _ Event_router.event_subscription ) ;
+    (* handle_archive_dispatch_failed *)
+    ignore
+      ( Event_router.on event_router Event_type.Archive_dispatch_failed
+          ~f:(fun node _failed ->
+            update ~f:(fun state ->
+                [%log warn]
+                  "Updating network state with archive dispatch failure from \
+                   $node"
+                  ~metadata:[ ("node", `String (Node.infra_id node)) ] ;
+                { state with
+                  archive_dispatch_failures =
+                    state.archive_dispatch_failures + 1
                 } ) )
         : _ Event_router.event_subscription ) ;
     (r, w)

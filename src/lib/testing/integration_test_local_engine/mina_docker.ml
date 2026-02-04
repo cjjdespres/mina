@@ -85,18 +85,9 @@ module Network_config = struct
     let constants : Test_config.constants =
       { constants with genesis_constants; constraint_constants }
     in
-    let long_commit_id =
-      if String.is_substring Mina_version.commit_id ~substring:"[DIRTY]" then
-        String.sub Mina_version.commit_id ~pos:7
-          ~len:(String.length Mina_version.commit_id - 7)
-      else Mina_version.commit_id
-    in
-    let mina_archive_base_url =
-      "https://raw.githubusercontent.com/MinaProtocol/mina/" ^ long_commit_id
-      ^ "/src/app/archive/"
-    in
+    (* TODO: restore GitHub download once commit is pushed upstream *)
     let mina_archive_schema_aux_files =
-      [ sprintf "%screate_schema.sql" mina_archive_base_url ]
+      [ Core.Unix.getcwd () ^/ "src/app/archive/create_schema.sql" ]
     in
     let open Docker_node_config in
     let open Docker_compose.Dockerfile in
@@ -540,12 +531,13 @@ module Network_manager = struct
     ignore (Util.run_cmd_exn docker_dir "chmod" [ "+x"; archive_filename ]) ;
     let%bind _ =
       Deferred.List.iter network_config.docker.mina_archive_schema_aux_files
-        ~f:(fun schema_url ->
-          let filename = Filename.basename schema_url in
-          [%log info] "Downloading %s" schema_url ;
+        ~f:(fun schema_path ->
+          let filename = Filename.basename schema_path in
+          [%log info] "Copying schema file %s" schema_path ;
           let%bind _ =
-            Util.run_cmd_or_hard_error docker_dir "curl"
-              [ "-o"; filename; schema_url ]
+            (* TODO: restore curl download once commit is pushed upstream *)
+            Util.run_cmd_or_hard_error docker_dir "cp"
+              [ schema_path; filename ]
           in
           [%log info]
             "Writing custom postgres entrypoint script (import archive node \
