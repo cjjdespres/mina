@@ -658,17 +658,28 @@ let fail_with_broken_chain_to_genesis ~logger pool ~target_state_hash ~block_ids
   in
   let chain_oldest_state_hash = state_hash_at_slot chain_oldest_slot in
   let chain_newest_state_hash = state_hash_at_slot chain_newest_slot in
+  let query_height state_hash =
+    match%map
+      Mina_caqti.Pool.use
+        (fun db -> Sql.Block.get_height_by_state_hash db state_hash)
+        pool
+    with
+    | Ok height ->
+        height
+    | Error _ ->
+        Int64.minus_one
+  in
   let%bind chain_oldest_parent_state_hash =
     query_parent_state_hash chain_oldest_state_hash
   in
+  let%bind chain_oldest_height = query_height chain_oldest_state_hash in
+  let%bind chain_newest_height = query_height chain_newest_state_hash in
   let%bind blocks_at_preceding_height =
     match%map
       Mina_caqti.Pool.use
         (fun db ->
-          let%bind.Deferred.Result height =
-            Sql.Block.get_height_by_state_hash db chain_oldest_state_hash
-          in
-          Sql.Block.get_state_hashes_by_height db (Int64.pred height) )
+          Sql.Block.get_state_hashes_by_height db
+            (Int64.pred chain_oldest_height) )
         pool
     with
     | Ok hashes ->
@@ -682,12 +693,14 @@ let fail_with_broken_chain_to_genesis ~logger pool ~target_state_hash ~block_ids
       [ ("target_state_hash", `String target_state_hash)
       ; ("chain_length", `Int (Int.Set.length block_ids))
       ; ("chain_oldest_slot", `String (Int64.to_string chain_oldest_slot))
+      ; ("chain_oldest_height", `String (Int64.to_string chain_oldest_height))
       ; ("chain_oldest_state_hash", `String chain_oldest_state_hash)
       ; ( "chain_oldest_parent_state_hash"
         , `String chain_oldest_parent_state_hash )
       ; ( "blocks_at_preceding_height"
         , `List (List.map blocks_at_preceding_height ~f:(fun h -> `String h)) )
       ; ("chain_newest_slot", `String (Int64.to_string chain_newest_slot))
+      ; ("chain_newest_height", `String (Int64.to_string chain_newest_height))
       ; ("chain_newest_state_hash", `String chain_newest_state_hash)
       ] ;
   Core_kernel.exit 1
