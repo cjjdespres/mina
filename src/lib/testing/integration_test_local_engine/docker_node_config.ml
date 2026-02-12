@@ -233,8 +233,8 @@ module Block_producer_config = struct
     in
     List.concat [ block_producer_args; base_args ]
 
-  let create_docker_config ~deploy ~image ~entrypoint ~ports ~volumes ~environment
-      ~config =
+  let create_docker_config ~deploy ~image ~entrypoint ~ports ~volumes
+      ~environment ~config =
     { Dockerfile.Service.image
     ; command = create_cmd config
     ; entrypoint
@@ -248,8 +248,8 @@ module Block_producer_config = struct
     let entrypoint = Some [ "/root/entrypoint.sh" ] in
     let environment = Base_node_config.to_docker_env_vars config.base_config in
     let docker_config =
-      create_docker_config ~deploy ~image ~ports ~volumes ~environment ~entrypoint
-        ~config
+      create_docker_config ~deploy ~image ~ports ~volumes ~environment
+        ~entrypoint ~config
     in
     { service_name; config; docker_config }
 end
@@ -291,8 +291,8 @@ module Seed_config = struct
     in
     List.concat [ seed_args; base_args ]
 
-  let create_docker_config ~deploy ~image ~entrypoint ~ports ~volumes ~environment
-      ~config =
+  let create_docker_config ~deploy ~image ~entrypoint ~ports ~volumes
+      ~environment ~config =
     { Dockerfile.Service.image
     ; command = create_cmd config
     ; entrypoint
@@ -306,8 +306,8 @@ module Seed_config = struct
     let entrypoint = Some [ "/root/entrypoint.sh" ] in
     let environment = Base_node_config.to_docker_env_vars config.base_config in
     let docker_config =
-      create_docker_config ~deploy ~image ~ports ~volumes ~environment ~entrypoint
-        ~config
+      create_docker_config ~deploy ~image ~ports ~volumes ~environment
+        ~entrypoint ~config
     in
     { service_name; config; docker_config }
 end
@@ -339,8 +339,8 @@ module Snark_worker_config = struct
     ; "false"
     ]
 
-  let create_docker_config ~deploy ~image ~entrypoint ~ports ~volumes ~environment
-      ~config =
+  let create_docker_config ~deploy ~image ~entrypoint ~ports ~volumes
+      ~environment ~config =
     { Dockerfile.Service.image
     ; command = create_cmd config
     ; entrypoint
@@ -354,8 +354,8 @@ module Snark_worker_config = struct
     let entrypoint = Some [ "/root/entrypoint.sh" ] in
     let environment = Base_node_config.to_docker_env_vars config.base_config in
     let docker_config =
-      create_docker_config ~deploy ~image ~ports ~volumes ~environment ~entrypoint
-        ~config
+      create_docker_config ~deploy ~image ~ports ~volumes ~environment
+        ~entrypoint ~config
     in
     { service_name; config; docker_config }
 end
@@ -399,8 +399,8 @@ module Snark_coordinator_config = struct
     in
     List.concat [ snark_coordinator_args; base_args ]
 
-  let create_docker_config ~deploy ~image ~entrypoint ~ports ~volumes ~environment
-      ~config =
+  let create_docker_config ~deploy ~image ~entrypoint ~ports ~volumes
+      ~environment ~config =
     { Dockerfile.Service.image
     ; command = create_cmd config
     ; entrypoint
@@ -420,8 +420,8 @@ module Snark_coordinator_config = struct
       @ Base_node_config.to_docker_env_vars config.base_config
     in
     let docker_config =
-      create_docker_config ~deploy ~image ~ports ~volumes ~environment ~entrypoint
-        ~config
+      create_docker_config ~deploy ~image ~ports ~volumes ~environment
+        ~entrypoint ~config
     in
     { service_name; config; docker_config }
 end
@@ -488,7 +488,8 @@ psql -U postgres -d archive -f ./create_schema.sql
     create_connection_uri ~host:t.host ~port:t.port ~username:t.username
       ~password:t.password ~database:t.database
 
-  let create_docker_config ~deploy ~image ~entrypoint ~ports ~volumes ~environment =
+  let create_docker_config ~deploy ~image ~entrypoint ~ports ~volumes
+      ~environment =
     { Dockerfile.Service.image
     ; command = []
     ; entrypoint
@@ -505,7 +506,8 @@ psql -U postgres -d archive -f ./create_schema.sql
         ~port:(Int.to_string config.port)
     in
     let docker_config =
-      create_docker_config ~deploy ~image ~ports ~volumes ~environment ~entrypoint:None
+      create_docker_config ~deploy ~image ~ports ~volumes ~environment
+        ~entrypoint:None
     in
     { service_name; config; docker_config }
 end
@@ -560,8 +562,8 @@ module Archive_node_config = struct
     in
     List.concat [ base_args; runtime_config_path ]
 
-  let create_docker_config ~deploy ~image ~entrypoint ~ports ~volumes ~environment
-      ~config =
+  let create_docker_config ~deploy ~image ~entrypoint ~ports ~volumes
+      ~environment ~config =
     { Dockerfile.Service.image
     ; command = create_cmd config
     ; entrypoint
@@ -575,8 +577,8 @@ module Archive_node_config = struct
     let entrypoint = Some [ "/root/entrypoint.sh" ] in
     let environment = Base_node_config.to_docker_env_vars config.base_config in
     let docker_config =
-      create_docker_config ~deploy ~image ~ports ~volumes ~environment ~entrypoint
-        ~config
+      create_docker_config ~deploy ~image ~ports ~volumes ~environment
+        ~entrypoint ~config
     in
     { service_name; config; docker_config }
 end

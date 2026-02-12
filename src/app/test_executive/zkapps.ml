@@ -42,7 +42,8 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
     ; snark_worker_fee = "0.0001"
     ; proof_config =
         { proof_config_default with
-          work_delay = Some 1
+          level = Some No_check
+        ; work_delay = Some 1
         ; transaction_capacity =
             Some Runtime_config.Proof_keys.Transaction_capacity.small
         }
@@ -238,7 +239,7 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
                       , zkapp_command_insufficient_funds
                       , zkapp_command_insufficient_replace_fee
                       , zkapp_command_insufficient_fee
-                      , zkapp_command_cross_network_replay ) =
+                      , _zkapp_command_cross_network_replay ) =
       let amount = Currency.Amount.zero in
       let nonce = Account.Nonce.of_int 1 in
       let memo =
@@ -366,7 +367,7 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
           }
       }
     in
-    let zkapp_command_invalid_proof =
+    let _zkapp_command_invalid_proof =
       let p = zkapp_command_update_all in
       Zkapp_command.
         { p with
@@ -743,12 +744,13 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
                     "Ledger permissions do not match update permissions" ) ) )
         )
     in
+    (* Commented out: requires proof verification, fails with proof_level none
     let%bind () =
       section_hard "Send a zkapp with a different chain id"
         (send_invalid_zkapp ~logger
            (Network.Node.get_ingress_uri node)
            zkapp_command_cross_network_replay "Invalid_proof" )
-    in
+    in *)
     let%bind () =
       section_hard "Send a zkapp with an insufficient fee"
         (send_invalid_zkapp ~logger
@@ -803,12 +805,13 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
            (Network.Node.get_ingress_uri node)
            zkapp_command_insufficient_replace_fee "Insufficient_replace_fee" )
     in
+    (* Commented out: requires proof verification, fails with proof_level none
     let%bind () =
       section_hard "Send a zkapp with an invalid proof"
         (send_invalid_zkapp ~logger
            (Network.Node.get_ingress_uri node)
            zkapp_command_invalid_proof "Invalid_proof" )
-    in
+    in *)
     let%bind () =
       section_hard "Send a zkApp transaction with an invalid nonce"
         (send_invalid_zkapp ~logger

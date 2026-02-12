@@ -48,8 +48,11 @@ module Network_config = struct
       ~(images : Test_config.Container_images.t) ~(test_config : Test_config.t)
       ~(constants : Test_config.constants) =
     let deploy =
-      Docker_compose.Dockerfile.Service.Deploy.create
-        ~cpus:cli_inputs.cpu_limit ~memory:cli_inputs.memory_limit
+      match (cli_inputs.cpu_limit, cli_inputs.memory_limit) with
+      | None, None ->
+          None
+      | cpus, memory ->
+          Some (Docker_compose.Dockerfile.Service.Deploy.create ~cpus ~memory)
     in
     let ({ block_producers
          ; snark_coordinator
@@ -539,8 +542,7 @@ module Network_manager = struct
           [%log info] "Copying schema file %s" schema_path ;
           let%bind _ =
             (* TODO: restore curl download once commit is pushed upstream *)
-            Util.run_cmd_or_hard_error docker_dir "cp"
-              [ schema_path; filename ]
+            Util.run_cmd_or_hard_error docker_dir "cp" [ schema_path; filename ]
           in
           [%log info]
             "Writing custom postgres entrypoint script (import archive node \

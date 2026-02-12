@@ -26,7 +26,21 @@ module Dockerfile = struct
     module Deploy = struct
       module Resources = struct
         module Limits = struct
-          type t = { cpus : string; memory : string } [@@deriving to_yojson]
+          type t = { cpus : string option; memory : string option }
+
+          let to_yojson { cpus; memory } =
+            `Assoc
+              ( ( match cpus with
+                | Some c ->
+                    [ ("cpus", `String c) ]
+                | None ->
+                    [] )
+              @
+              match memory with
+              | Some m ->
+                  [ ("memory", `String m) ]
+              | None ->
+                  [] )
         end
 
         type t = { limits : Limits.t } [@@deriving to_yojson]
@@ -36,8 +50,6 @@ module Dockerfile = struct
 
       let create ~cpus ~memory =
         { resources = { limits = { Resources.Limits.cpus; memory } } }
-
-      let default = create ~cpus:"2" ~memory:"6G"
     end
 
     type t =
@@ -54,22 +66,28 @@ module Dockerfile = struct
       ; ports : Port.t list
       ; environment : Environment.t
       ; volumes : Volume.t list
-      ; deploy : Deploy.t
+      ; deploy : Deploy.t option
       }
     [@@deriving to_yojson]
 
-    let create ~image ~command ~entrypoint ~ports ~environment ~volumes ~deploy =
+    let create ~image ~command ~entrypoint ~ports ~environment ~volumes ~deploy
+        =
       { image; command; entrypoint; ports; environment; volumes; deploy }
 
-    let to_yojson { image; command; entrypoint; ports; environment; volumes; deploy } =
+    let to_yojson
+        { image; command; entrypoint; ports; environment; volumes; deploy } =
       `Assoc
         ( [ ("image", `String image)
           ; ("command", `List (List.map ~f:(fun s -> `String s) command))
           ; ("ports", `List (List.map ~f:Port.to_yojson ports))
           ; ("environment", Environment.to_yojson environment)
           ; ("volumes", `List (List.map ~f:Volume.to_yojson volumes))
-          ; ("deploy", Deploy.to_yojson deploy)
           ]
+        @ ( match deploy with
+          | Some d ->
+              [ ("deploy", Deploy.to_yojson d) ]
+          | None ->
+              [] )
         @
         match entrypoint with
         | Some ep ->
