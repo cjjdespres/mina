@@ -113,12 +113,10 @@ module Node = struct
              "genesis_ledger": { "accounts": %s, "add_genesis_winner": true }} |}
         start_slot_since_genesis accounts
     in
-    let dest = "replayer-input.json" in
-    let%bind archive_container_id = get_container_id "archive" in
+    let dest = "/root/replayer-input.json" in
     let%bind () =
       Deferred.bind ~f:Malleable_error.return
-        (cp_string_to_container_file archive_container_id ~str:replayer_input
-           ~dest )
+        (cp_string_to_container_file container_id ~str:replayer_input ~dest )
       >>| ignore
     in
     let postgres_url = Option.value_exn t.config.postgres_connection_uri in
